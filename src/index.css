@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --color-ground: #f6f6f3;
+  --color-surface: #ffffff;
+  --color-line: #e5e3dc;
+  --color-line-soft: #f0efea;
+  --color-line-strong: #d6d4cc;
+  --color-grid: #eeede8;
+
+  --color-ink: #1c1c1a;
+  --color-ink-2: #3b3a36;
+  --color-muted: #5c5b57;
+  --color-faint: #75746f;
+
+  --color-chip: #f1efe8;
+  --color-seg: #ecebe6;
+  --color-hover-col: #f1f0ec;
+  --color-crosshair: #b9b7ae;
+
+  --color-nav-active-bg: #eaf1fb;
+  --color-nav-active-fg: #123f78;
+  --color-pill-on-bd: #9ec5f4;
+  --color-link: #1d5fae;
+  --color-link-hover: #123f78;
+  --color-primary: #1d5fae;
+  --color-primary-hover: #174e90;
+
+  --color-series-in: #2a78d6;
+  --color-series-out: #eb6834;
+  --color-series-3: #1baf7a;
+  --color-series-4: #eda100;
+
+  --color-good: #0ca30c;
+  --color-warning: #fab219;
+  --color-warning-text: #7a5200;
+  --color-critical: #d03b3b;
+  --color-critical-text: #a32d2d;
+  --color-critical-bg: #fcebeb;
+  --color-critical-bd: #f7c1c1;
+}
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    background: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--color-link);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--color-link-hover);
+    text-decoration: underline;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-series-in);
+    outline-offset: 2px;
+  }
+}
