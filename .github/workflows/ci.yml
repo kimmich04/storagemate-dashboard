@@ -1,0 +1,69 @@
+name: CI
+
+# PR vào main: chỉ check. Push/merge vào main: check rồi deploy.
+# Push lên nhánh khác (develop, feature/...) không kích hoạt workflow này.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Commit mới trên cùng một PR sẽ huỷ run cũ.
+# Với main thì không huỷ, để không cắt ngang một lần deploy đang chạy.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  check:
+    name: Lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      # Dự án chưa có script "test": --if-present sẽ bỏ qua thay vì báo lỗi.
+      - run: npm run test --if-present
+      - run: npm run build
+
+  deploy:
+    name: Deploy Production lên Vercel
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm install --global vercel@latest
+
+      # Tải cấu hình project và biến môi trường Production (VITE_*) từ Vercel.
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Build trên runner của GitHub, ra thư mục .vercel/output.
+      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Chỉ upload kết quả đã build: Vercel không build lại.
+      - id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "Đã deploy: $url" >> "$GITHUB_STEP_SUMMARY"
