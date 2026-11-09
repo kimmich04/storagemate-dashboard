@@ -40,9 +40,70 @@
   --color-critical-text: #a32d2d;
   --color-critical-bg: #fcebeb;
   --color-critical-bd: #f7c1c1;
+
+  /* Nhận diện thương hiệu theo Business Proposal 2026 (teal + cam, nền kem) */
+  --color-brand-deep: #17434f;
+  --color-brand: #21596a;
+  --color-brand-3: #507077;
+  --color-cream: #fbf7f0;
+  --color-cream-card: #fffdf8;
+  --color-teal-100: #dcebec;
+  --color-teal-200: #c9dfe1;
+  --color-teal-300: #b5d2d5;
+  --color-zalo: #2f6fe0;
+  --color-zalo-bg: #e9eef5;
+  --color-zalo-bubble: #d3e3ff;
+  --color-accent: #cf5f1b;
+  --color-accent-soft: #f2a66b;
+  --color-accent-deep: #b4531a;
+  --color-accent-ink: #9a4413;
+
+  /* Chủ đạo theo theme "ZaiPack" (pine xanh đậm + mustard vàng, nền giấy) */
+  --color-pine: #00443f;
+  --color-pine-2: #1b5450;
+  --color-pine-3: #2f6e67;
+  --color-sage: #a8c9c0;
+  --color-paper: #ffffff;
+  --color-mustard: #ffe175;
+  --color-mustard-deep: #f2c230;
+  --color-mustard-soft: #fdf3d4;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  width: max-content;
+  animation: marquee 32s linear infinite;
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-slow {
+  animation: spin-slow 16s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .spin-slow {
+    animation: none;
+  }
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   html,
   body {
     margin: 0;

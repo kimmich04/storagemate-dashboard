@@ -31,7 +31,7 @@ export function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
+            end={item.to === '/dashboard'}
             className={({ isActive }) =>
               cn(
                 'flex items-center justify-between rounded-lg px-3 py-[9px] no-underline hover:no-underline',

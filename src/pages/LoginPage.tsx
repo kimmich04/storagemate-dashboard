@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, Link } from 'react-router-dom'
 import { ApiError, USE_MOCK } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Icon } from '../components/ui/Icon'
@@ -27,7 +27,7 @@ export default function LoginPage() {
   const { isAuthenticated, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
+  const from = (location.state as { from?: string } | null)?.from ?? '/dashboard'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -64,10 +64,14 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ground p-4 font-sans text-sm text-ink">
       <div className="flex w-full max-w-[400px] flex-col gap-6 rounded-xl border border-line bg-surface p-8">
-        <div className="flex flex-col gap-0.5">
+        <Link
+          to="/"
+          className="-mt-2 flex w-fit flex-col gap-0.5 no-underline hover:no-underline"
+          aria-label="Về trang giới thiệu Storagemate"
+        >
           <span className="text-[17px] font-bold tracking-[-0.01em]">Storagemate</span>
           <span className="text-xs text-muted">Quán Mộc · kho trung tâm</span>
-        </div>
+        </Link>
 
         <div className="flex flex-col gap-1">
           <h1 className="m-0 text-[22px] font-bold tracking-[-0.02em]">Đăng nhập quản trị</h1>
