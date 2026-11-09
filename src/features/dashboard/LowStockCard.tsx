@@ -11,12 +11,13 @@ function statusOf(it: LowStockItem) {
   return { label: 'Đủ', icon: 'clock' as const, bar: 'bg-series-in', text: 'text-ink-2' }
 }
 
+/** Chỉ render khi có mặt hàng (mặt hàng chưa đặt mức tối thiểu thì không hiện). */
 export function LowStockCard({ items, className }: { items: LowStockItem[]; className?: string }) {
   return (
     <Card title="Sắp hết hàng" action={<a href="/ton-kho" className="text-[13px]">Xem tồn kho</a>} className={className}>
       {items.map((it) => {
         const s = statusOf(it)
-        const days = it.avgDailyOut > 0 ? Math.floor(it.qty / it.avgDailyOut) : 0
+        const days = it.avgDailyOut > 0 ? Math.floor(it.qty / it.avgDailyOut) : null
         const pct = Math.min(100, (it.qty / (it.minQty * 2)) * 100)
         return (
           <div key={it.itemId} className="flex flex-col gap-1.5 border-b border-line-soft pb-3">
@@ -31,8 +32,8 @@ export function LowStockCard({ items, className }: { items: LowStockItem[]; clas
               <div className={cn('h-full rounded-full', s.bar)} style={{ width: `${pct}%` }} />
             </div>
             <span className="text-xs text-muted">
-              Còn {fmtQty(it.qty, it.unit)} · tối thiểu {fmtQty(it.minQty, it.unit)} ·{' '}
-              {days <= 0 ? 'đã hết' : `đủ dùng ~${days} ngày`}
+              Còn {fmtQty(it.qty, it.unit)} · tối thiểu {fmtQty(it.minQty, it.unit)}
+              {days === null ? '' : days <= 0 ? ' · đã hết' : ` · đủ dùng ~${days} ngày`}
             </span>
           </div>
         )
