@@ -5,6 +5,12 @@ import { cn } from '../../lib/cn'
 import { useAsync } from '../../lib/useAsync'
 import { NAV_ITEMS, type NavItem } from './nav'
 
+/**
+ * Ô trạng thái Zalo Bot ở đáy sidebar. Tạm ẩn: chưa có API /api/bot/status, số liệu đang là dữ liệu mẫu
+ * (mocks/api.ts) nên không đưa vào demo. Có dữ liệu thật thì đổi thành true.
+ */
+const SHOW_BOT_STATUS = false
+
 function minutesAgo(iso: string): string {
   const diff = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
   if (!Number.isFinite(diff) || diff < 0 || diff > 60 * 24) return iso.slice(11, 16)
@@ -43,7 +49,9 @@ export function Sidebar() {
   return (
     <nav
       aria-label="Điều hướng chính"
-      className="flex max-w-full min-w-0 flex-[1_1_220px] flex-col gap-6 border-r border-line bg-surface px-4 py-6"
+      // Từ 780px (220 sidebar + 560 nội dung, ngưỡng AppShell tự xuống dòng) sidebar cố định cao đúng một màn hình:
+      // status + đăng xuất luôn thấy khi trang cuộn; màn hình thấp thì tự cuộn bên trong sidebar.
+      className="flex max-w-full min-w-0 flex-[1_1_220px] flex-col gap-6 border-r border-line bg-surface px-4 py-6 min-[780px]:sticky min-[780px]:top-0 min-[780px]:h-screen min-[780px]:self-start min-[780px]:overflow-y-auto"
     >
       <div className="flex flex-col gap-0.5 px-2">
         <span className="text-[17px] font-bold tracking-[-0.01em]">Storagemate</span>
@@ -67,21 +75,23 @@ export function Sidebar() {
       </div>
 
       <div className="mt-auto flex flex-col gap-3">
-        <div className="flex flex-col gap-2 rounded-xl border border-line p-3.5">
-          <span className="text-xs text-muted">Zalo Bot · {bot.data?.botName ?? '…'}</span>
-          <span className="flex items-center gap-2 font-semibold">
-            <span
-              aria-hidden="true"
-              className={cn('size-2 rounded-full', bot.data?.webhookOk === false ? 'bg-critical' : 'bg-good')}
-            />
-            {bot.data?.webhookOk === false ? 'Webhook lỗi' : 'Webhook hoạt động'}
-          </span>
-          <span className="text-xs text-muted">
-            {bot.data
-              ? `Tin cuối: ${minutesAgo(bot.data.lastMessageAt)} · Hàng đợi: ${bot.data.queueSize} tin`
-              : 'Đang kiểm tra…'}
-          </span>
-        </div>
+        {SHOW_BOT_STATUS && (
+          <div className="flex flex-col gap-2 rounded-xl border border-line p-3.5">
+            <span className="text-xs text-muted">Zalo Bot · {bot.data?.botName ?? '…'}</span>
+            <span className="flex items-center gap-2 font-semibold">
+              <span
+                aria-hidden="true"
+                className={cn('size-2 rounded-full', bot.data?.webhookOk === false ? 'bg-critical' : 'bg-good')}
+              />
+              {bot.data?.webhookOk === false ? 'Webhook lỗi' : 'Webhook hoạt động'}
+            </span>
+            <span className="text-xs text-muted">
+              {bot.data
+                ? `Tin cuối: ${minutesAgo(bot.data.lastMessageAt)} · Hàng đợi: ${bot.data.queueSize} tin`
+                : 'Đang kiểm tra…'}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2 px-2 text-xs">
           <span className="min-w-0 truncate text-muted">{admin?.email}</span>
           <button

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../api/client'
 import type { PeriodParams, SortOrder, StockSortKey, StockStatus } from '../api/types'
+import { PageHeader } from '../components/layout/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorCard } from '../components/ui/ErrorCard'
 import { Pagination } from '../components/ui/Pagination'
@@ -94,15 +95,12 @@ export default function StockPage() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em]">Tồn kho</h1>
-          <span className="text-muted">
-            Kho tổng · {p ? `${fmtDateFull(p.from)} – ${fmtDateFull(p.to)}` : 'Đang tải…'}
-          </span>
-        </div>
+      <PageHeader
+        title="Tồn kho"
+        subtitle={`Kho tổng · ${p ? `${fmtDateFull(p.from)} – ${fmtDateFull(p.to)}` : 'Đang tải…'}`}
+      >
         <PeriodFilter state={period} params={periodParams} onChange={setPeriodParams} />
-      </div>
+      </PageHeader>
 
       <Section title="Thống kê sơ bộ">
         <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">

@@ -1,109 +1,68 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { RangeDays, Weeks } from '../api/types'
+import type { PeriodParams } from '../api/types'
+import { PageHeader } from '../components/layout/PageHeader'
 import { AsyncBody } from '../components/ui/AsyncBody'
-import { EmptyState } from '../components/ui/EmptyState'
-import { ErrorCard } from '../components/ui/ErrorCard'
-import { Section } from '../components/ui/Section'
-import { SegmentedControl } from '../components/ui/SegmentedControl'
+import { PeriodFilter } from '../features/period/PeriodFilter'
+import { usePeriodParams } from '../features/period/usePeriodParams'
 import { InOutBarChart } from '../features/dashboard/InOutBarChart'
 import { deltaNote, KpiTile } from '../features/dashboard/KpiTile'
-import { LowStockCard } from '../features/dashboard/LowStockCard'
-import { ParserQualityCard } from '../features/dashboard/ParserQualityCard'
 import { RecentTransactions } from '../features/dashboard/RecentTransactions'
 import { StaffTable } from '../features/dashboard/StaffTable'
-import { StockLineChart } from '../features/dashboard/StockLineChart'
-import { fmtDate } from '../lib/format'
+import { TopDestinations } from '../features/dashboard/TopDestinations'
+import { fmtDateFull } from '../lib/format'
 import { useAsync } from '../lib/useAsync'
 
-const RANGE_OPTIONS: { value: RangeDays; label: string }[] = [
-  { value: 7, label: '7 ngày' },
-  { value: 14, label: '14 ngày' },
-  { value: 30, label: '30 ngày' },
-]
-const WEEK_OPTIONS: { value: Weeks; label: string }[] = [
-  { value: 1, label: '1 tuần' },
-  { value: 2, label: '2 tuần' },
-  { value: 3, label: '3 tuần' },
-  { value: 4, label: '4 tuần' },
-]
+const TOP_DESTINATIONS = 5
 
-function parseRange(v: string | null): RangeDays {
-  return v === '14' ? 14 : v === '30' ? 30 : 7
-}
-function parseWeeks(v: string | null): Weeks {
-  return v === '1' ? 1 : v === '2' ? 2 : v === '3' ? 3 : 4
+/** Chờ kỳ chuẩn hóa từ [P0]: chưa gọi API nào, các khối hiện skeleton (kiểu `never` để không lẫn `undefined`). */
+const none = new Promise<never>(() => {})
+
+/** Đường dẫn trang con, mang theo kỳ đang xem để số ở trang con khớp với ô vừa bấm. */
+function withPeriod(path: string, p: PeriodParams | undefined): string {
+  if (!p?.month) return path
+  const sp = new URLSearchParams({ month: p.month, from: p.from ?? '', to: p.to ?? '' })
+  return `${path}?${sp.toString()}`
 }
 
+/**
+ * Trang Tổng quan (kho tổng, "/"). Mỗi khối gọi đúng một API (plan mục 8.5):
+ *   [P0] kỳ · [T1..T4] bốn ô KPI · [T5] ô Còn tồn · [T6] biểu đồ cột · [T7] xuất theo nơi nhận (top 5)
+ *   · [T8] giao dịch gần đây.
+ * Kỳ lấy từ URL (?month&from&to) và được gọi lại /api/period trước để chuẩn hóa, các API còn lại dùng kỳ đã chuẩn hóa.
+ */
 export default function DashboardPage() {
-  const [params, setParams] = useSearchParams()
-  const range = parseRange(params.get('range'))
-  const weeks = parseWeeks(params.get('weeks'))
-  const locParam = Number(params.get('location'))
-  const locationId = Number.isInteger(locParam) && locParam > 0 ? locParam : undefined
-  const [pickedItem, setPickedItem] = useState<number>()
+  const [periodParams, setPeriodParams] = usePeriodParams()
 
-  const setParam = (key: string, value: string | undefined) => {
-    const next = new URLSearchParams(params)
-    if (value === undefined) next.delete(key)
-    else next.set(key, value)
-    setParams(next, { replace: true })
-  }
+  // [P0] kỳ đã chuẩn hóa
+  const period = useAsync(() => api.getPeriod(periodParams), [periodParams.month, periodParams.from, periodParams.to])
+  const p = period.data
+  const range: PeriodParams | undefined = p && { month: p.month, from: p.from, to: p.to }
+  const rangeKey = p ? `${p.month}|${p.from}|${p.to}` : ''
 
-  const locations = useAsync(() => api.getLocations(), [])
+  // [T1..T4] bốn ô KPI  [T5] ô Còn tồn  [T6] biểu đồ  [T7] top nơi nhận  [T8] giao dịch gần đây
+  const stockIn = useAsync(() => (range ? api.getOverviewKpi('stock-in', range) : none), [rangeKey])
+  const itemsIn = useAsync(() => (range ? api.getOverviewKpi('items-in', range) : none), [rangeKey])
+  const stockOut = useAsync(() => (range ? api.getOverviewKpi('stock-out', range) : none), [rangeKey])
+  const destinations = useAsync(() => (range ? api.getOverviewKpi('destinations', range) : none), [rangeKey])
+  const inStock = useAsync(() => (range ? api.getOverviewInStock(range) : none), [rangeKey])
+  const inOut = useAsync(() => (range ? api.getOverviewInOut(range) : none), [rangeKey])
+  const topDest = useAsync(() => (range ? api.getOutByDestination(range, {}, TOP_DESTINATIONS) : none), [rangeKey])
+  const recent = useAsync(() => api.getOverviewRecent(10), [])
+  // [T9] bảng Nhân viên của kho tổng trong kỳ đang chọn
+  const staff = useAsync(() => (range ? api.getOverviewStaff(range) : none), [rangeKey])
 
-  // ① Hiện tại
-  const belowMin = useAsync(() => api.getBelowMin(locationId), [locationId])
-  const lowStock = useAsync(() => api.getLowStock(locationId), [locationId])
-  const items = useAsync(() => api.getTrackedItems(locationId), [locationId])
-  const itemList = items.data?.items ?? []
-  const itemId = itemList.some((i) => i.id === pickedItem) ? pickedItem : itemList[0]?.id
-  const history = useAsync(
-    () => (itemId === undefined ? Promise.resolve(undefined) : api.getStockHistory(itemId, locationId)),
-    [itemId, locationId],
-  )
-
-  // ② Theo ngày
-  const stockIn = useAsync(() => api.getStockIn(range, locationId), [range, locationId])
-  const stockOut = useAsync(() => api.getStockOut(range, locationId), [range, locationId])
-  const inOut = useAsync(() => api.getInOut(range, locationId), [range, locationId])
-  const staff = useAsync(() => api.getStaff(range, locationId), [range, locationId])
-
-  // ③ Bot
-  const regex = useAsync(() => api.getRegexRate(weeks, locationId), [weeks, locationId])
-  const retype = useAsync(() => api.getRetype(weeks, locationId), [weeks, locationId])
-  const parser = useAsync(() => api.getParserQuality(weeks, locationId), [weeks, locationId])
-  const bot = useAsync(() => api.getBotStatus(), []) // dữ liệu mẫu, chưa có API
-
-  // ④ Hoạt động
-  const recent = useAsync(() => api.getRecentTransactions(locationId), [locationId])
-
-  const updatedTo = inOut.data?.to
+  const periodLabel = p ? `${fmtDateFull(p.from)} – ${fmtDateFull(p.to)}` : ''
+  const inboundTo = withPeriod('/giao-dich/nhap-kho', range)
+  const outboundTo = withPeriod('/giao-dich/xuat-kho', range)
+  const stockTo = withPeriod('/ton-kho', range)
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em]">Tổng quan kho</h1>
-          <span className="text-muted">
-            {updatedTo ? `Dữ liệu cập nhật đến ${fmtDate(updatedTo)}/${updatedTo.slice(0, 4)}` : 'Đang tải…'}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <select
-            aria-label="Chọn kho"
-            value={locationId ?? ''}
-            onChange={(e) => setParam('location', e.target.value || undefined)}
-            className="min-h-[42px] rounded-[10px] border border-line-strong bg-surface px-3 text-[13px] font-semibold text-ink"
-          >
-            <option value="">Kho tổng</option>
-            {(locations.data ?? []).map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+      <PageHeader title="Tổng quan" subtitle={`Kho tổng · ${p ? periodLabel : 'Đang tải…'}`}>
+        <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+          <PeriodFilter state={period} params={periodParams} onChange={setPeriodParams} />
+          {/* Nút giữ chỗ như bản cũ, chưa nối API báo cáo (báo cáo luôn theo cả tháng dương, plan mục 0).
+              Cách bộ lọc kỳ một khoảng rộng để không bị nhầm là một phần của bộ lọc. */}
           <button
             type="button"
             className="min-h-[42px] rounded-[10px] border border-line-strong bg-surface px-4 py-[9px] text-[13px] font-semibold text-ink hover:bg-ground"
@@ -111,141 +70,66 @@ export default function DashboardPage() {
             Xuất báo cáo
           </button>
         </div>
+      </PageHeader>
+
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3">
+        <KpiTile
+          label="Lượt nhập"
+          to={inboundTo}
+          state={stockIn}
+          view={(d) => ({ value: String(d.value), unit: 'lượt', note: deltaNote(d.deltaPct) })}
+        />
+        <KpiTile
+          label="Mặt hàng được nhập"
+          to={inboundTo}
+          state={itemsIn}
+          view={(d) => ({ value: String(d.value), unit: 'mặt hàng', note: deltaNote(d.deltaPct) })}
+        />
+        <KpiTile
+          label="Lượt xuất"
+          to={outboundTo}
+          state={stockOut}
+          view={(d) => ({ value: String(d.value), unit: 'lượt', note: deltaNote(d.deltaPct) })}
+        />
+        <KpiTile
+          label="Nơi nhận"
+          to={outboundTo}
+          state={destinations}
+          view={(d) => ({ value: String(d.value), unit: 'nơi', note: deltaNote(d.deltaPct) })}
+        />
+        <KpiTile
+          label="Còn tồn (cuối kỳ / đầu kỳ)"
+          to={stockTo}
+          state={inStock}
+          view={(d) => {
+            const diff = d.closing - d.opening
+            return {
+              // Còn tồn cuối kỳ trên số mặt hàng còn tồn đầu kỳ, vd. 107 / 109 mặt hàng
+              value: String(d.closing),
+              unit: `/ ${d.opening} mặt hàng`,
+              note: diff === 0 ? 'Không đổi so với đầu kỳ' : `${diff > 0 ? '▲ +' : '▼ −'}${Math.abs(diff)} mặt hàng so với đầu kỳ`,
+            }
+          }}
+        />
       </div>
 
-      {locations.error && <ErrorCard message={locations.error.message} onRetry={locations.reload} />}
-
-      <Section title="Hiện tại">
-        <div className="flex flex-wrap items-stretch gap-5">
-          <div className="flex min-w-[200px] flex-[0_1_240px] flex-col gap-5">
-            <KpiTile
-              label="Dưới mức tối thiểu"
-              center
-              className="flex-1"
-              state={belowMin}
-              view={(d) => ({
-                value: String(d.count),
-                unit: 'nguyên liệu',
-                note: d.count > 0 ? '● Cần đặt hàng' : 'Đủ hàng',
-                critical: d.count > 0,
-              })}
-            />
-            {lowStock.data && lowStock.data.items.length > 0 && <LowStockCard items={lowStock.data.items} />}
-          </div>
-          <div className="min-w-0 flex-[1_1_480px]">
-            {items.error ? (
-              <ErrorCard message={items.error.message} onRetry={items.reload} />
-            ) : history.error ? (
-              <ErrorCard message={history.error.message} onRetry={history.reload} />
-            ) : (
-              <StockLineChart
-                items={itemList}
-                itemId={itemId}
-                onItemChange={setPickedItem}
-                history={history.data && history.data.item.id === itemId ? history.data : undefined}
-              />
-            )}
-          </div>
-        </div>
-      </Section>
-
-      <Section
-        title="Thống kê theo ngày"
-        badge={`${range} ngày qua`}
-        filter={
-          <SegmentedControl
-            label="Khoảng thời gian"
-            options={RANGE_OPTIONS}
-            value={range}
-            onChange={(r) => setParam('range', r === 7 ? undefined : String(r))}
-          />
-        }
-      >
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
-          <KpiTile
-            label="Lượt nhập"
-            center
-            state={stockIn}
-            view={(d) => ({ value: String(d.value), unit: 'lượt', note: deltaNote(d.deltaPct, range) })}
-          />
-          <KpiTile
-            label="Lượt xuất"
-            center
-            state={stockOut}
-            view={(d) => ({ value: String(d.value), unit: 'lượt', note: deltaNote(d.deltaPct, range) })}
-          />
-        </div>
-        <div className="flex flex-wrap gap-5">
-          <div className="flex min-w-0 flex-[2_1_520px] flex-col">
-            <AsyncBody state={inOut} skeletonClass="h-[330px]">
-              {(d) => <InOutBarChart daily={d.days} />}
-            </AsyncBody>
-          </div>
-          <div className="flex min-w-0 flex-[1_1_420px] flex-col">
-            <AsyncBody state={staff} skeletonClass="h-[330px]">
-              {(d) => <StaffTable staff={d.staff} />}
-            </AsyncBody>
-          </div>
-        </div>
-      </Section>
-
-      <Section
-        title="Bot"
-        badge={`${weeks} tuần`}
-        filter={
-          <SegmentedControl
-            label="Số tuần"
-            options={WEEK_OPTIONS}
-            value={weeks}
-            onChange={(w) => setParam('weeks', w === 4 ? undefined : String(w))}
-          />
-        }
-      >
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
-          <KpiTile
-            label="Hiểu ngay bằng regex"
-            center
-            state={regex}
-            view={(d) =>
-              d.pct === null
-                ? { value: '–', unit: '', note: 'Chưa có tin nhắn từ bot' }
-                : {
-                    value: String(d.pct),
-                    unit: '%',
-                    note:
-                      d.deltaPt === null
-                        ? `${weeks} tuần gần nhất`
-                        : `${d.deltaPt >= 0 ? '▲ +' : '▼ −'}${Math.abs(d.deltaPt)} điểm so với ${weeks} tuần trước`,
-                  }
-            }
-          />
-          <KpiTile
-            label="Tin phải gõ lại"
-            center
-            state={retype}
-            view={(d) =>
-              d.pct === null
-                ? { value: '–', unit: '', note: 'Chưa có tin nhắn từ bot' }
-                : { value: String(d.pct), unit: '%', note: `${d.count} tin trong ${weeks} tuần` }
-            }
-          />
-        </div>
-        <AsyncBody state={parser} skeletonClass="h-[200px]">
-          {(d) => <ParserQualityCard weeks={d.weeks} pendingLabels={bot.data?.pendingLabels} />}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <AsyncBody state={inOut} skeletonClass="h-[330px]">
+          {(d) => <InOutBarChart daily={d.days} />}
         </AsyncBody>
-      </Section>
+        <AsyncBody state={topDest} skeletonClass="h-[330px]">
+          {(d) => <TopDestinations data={d} to={outboundTo} periodLabel={periodLabel} />}
+        </AsyncBody>
+      </div>
 
-      <Section title="Hoạt động nhập/xuất" badge="10 mới nhất">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <AsyncBody state={recent} skeletonClass="h-[300px]">
-          {(d) =>
-            d.items.length === 0 && locationId !== undefined ? (
-              <EmptyState>Chưa có dữ liệu cho kho này.</EmptyState>
-            ) : (
-              <RecentTransactions items={d.items} />
-            )
-          }
+          {(d) => <RecentTransactions items={d.items} />}
         </AsyncBody>
-      </Section>
+        <AsyncBody state={staff} skeletonClass="h-[300px]">
+          {(d) => <StaffTable staff={d.staff} />}
+        </AsyncBody>
+      </div>
     </>
   )
 }

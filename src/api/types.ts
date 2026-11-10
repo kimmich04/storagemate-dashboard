@@ -338,6 +338,37 @@ export interface OutTransactionsQuery extends PeriodParams, DestinationFilter {
   pageSize?: number
 }
 
+// ===== Tổng quan: /api/dashboard/* của kho tổng (plan mục 8.5) =====
+/** [API-T1..T4] Một ô KPI. deltaPct so với cùng dãy số ngày của tháng liền trước; null = tháng trước bằng 0. */
+export interface OverviewKpi {
+  value: number
+  deltaPct: number | null
+}
+
+/** [API-T5] Ô "Còn tồn": số mặt hàng còn tồn đầu kỳ → cuối kỳ, trên tổng số mặt hàng có sổ. */
+export interface OverviewInStock {
+  opening: number
+  closing: number
+  total: number
+}
+
+/** [API-T6] Biểu đồ cột lượt nhập / xuất theo ngày (đủ mọi ngày trong kỳ). */
+export interface OverviewInOut {
+  period: PeriodRange
+  days: DailyCount[]
+}
+
+/** [API-T8] Một giao dịch gần đây (trộn nhập và xuất); không phụ thuộc kỳ. */
+export interface OverviewRecentTx {
+  id: number
+  kind: 'in' | 'out'
+  name: string
+  unit: string
+  qty: number
+  eventDate: string
+  destinationName: string | null // chỉ có với kind = out và đã rõ nơi nhận
+}
+
 // ===== Danh mục hàng hóa: /api/items (plan mục 8.4, giai đoạn chỉ đọc) =====
 /** Bộ lọc kho. Bỏ trống cả hai = mọi mặt hàng. */
 export interface ItemLocationFilter {

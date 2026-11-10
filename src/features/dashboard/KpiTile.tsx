@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { cn } from '../../lib/cn'
 import type { AsyncState } from '../../lib/useAsync'
@@ -15,21 +16,22 @@ interface Props<T> {
   view: (data: T) => TileView
   center?: boolean
   className?: string
+  /** Có đường dẫn thì cả ô bấm được để sang trang chi tiết (giữ nguyên kỳ). */
+  to?: string
 }
 
+const BASE = 'flex min-w-0 flex-col gap-1.5 rounded-xl border border-line bg-surface px-[18px] py-4'
+
 /** Ô số liệu tự tải: skeleton khi đang tải, báo lỗi + Thử lại khi thất bại. */
-export function KpiTile<T>({ label, state, view, center, className }: Props<T>) {
+export function KpiTile<T>({ label, state, view, center, className, to }: Props<T>) {
   const v = state.data ? view(state.data) : undefined
-  return (
-    <div
-      className={cn(
-        'flex min-w-0 flex-col gap-1.5 rounded-xl border border-line bg-surface px-[18px] py-4',
-        center && 'items-center justify-center text-center',
-        className,
-      )}
-    >
+  const failed = state.error && !v
+  const cls = cn(BASE, center && 'items-center justify-center text-center', className)
+
+  const body = (
+    <>
       <span className="text-[13px] text-muted">{label}</span>
-      {state.error && !v ? (
+      {failed ? (
         <>
           <span className="text-[13px] text-critical-text">Không tải được</span>
           <button
@@ -51,13 +53,27 @@ export function KpiTile<T>({ label, state, view, center, className }: Props<T>) 
           <span className={cn('text-xs font-medium', v.critical ? 'text-critical-text' : 'text-ink-2')}>{v.note}</span>
         </>
       )}
-    </div>
+    </>
   )
+
+  // Ô đang lỗi/đang tải không biến thành link (nút "Thử lại" nằm bên trong không được lồng trong <a>)
+  if (to && v) {
+    return (
+      <Link to={to} className={cn(cls, 'text-ink no-underline hover:bg-ground')}>
+        {body}
+      </Link>
+    )
+  }
+  return <div className={cls}>{body}</div>
 }
 
-/** "▲ +12% so với 7 ngày trước"; số quá lớn (kỳ trước gần như trống) hiện ">999%". */
-export function deltaNote(pct: number, range: number): string {
+/**
+ * "▲ +12% so với cùng kỳ tháng trước". Số quá lớn (tháng trước gần như trống) hiện ">999%".
+ * pct = null: tháng trước không có dữ liệu để so sánh.
+ */
+export function deltaNote(pct: number | null): string {
+  if (pct === null) return 'Chưa có số tháng trước để so sánh'
   const abs = Math.abs(pct)
   const txt = abs > 999 ? '>999' : String(abs)
-  return `${pct >= 0 ? '▲ +' : '▼ −'}${txt}% so với ${range} ngày trước`
+  return `${pct >= 0 ? '▲ +' : '▼ −'}${txt}% so với cùng kỳ tháng trước`
 }

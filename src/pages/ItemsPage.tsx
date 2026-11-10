@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../api/client'
 import type { ItemLocationFilter } from '../api/types'
+import { PageHeader } from '../components/layout/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorCard } from '../components/ui/ErrorCard'
 import { OptionPicker, type PickerOption } from '../components/ui/OptionPicker'
@@ -104,10 +105,7 @@ export default function ItemsPage() {
 
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em]">Danh mục hàng hóa</h1>
-        <span className="text-muted">{sel === null ? 'Tất cả mặt hàng' : 'Đã lọc theo kho'}</span>
-      </div>
+      <PageHeader title="Danh mục hàng hóa" subtitle={sel === null ? 'Tất cả mặt hàng' : 'Đã lọc theo kho'} />
 
       <div className="flex flex-wrap items-center gap-3">
         <input

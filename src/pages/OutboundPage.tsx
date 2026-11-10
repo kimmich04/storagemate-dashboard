@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../api/client'
 import type { DestinationFilter, PeriodParams } from '../api/types'
+import { PageHeader } from '../components/layout/PageHeader'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorCard } from '../components/ui/ErrorCard'
 import { OptionPicker, type PickerOption } from '../components/ui/OptionPicker'
@@ -104,13 +105,9 @@ export default function OutboundPage() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="m-0 text-[26px] font-bold tracking-[-0.02em]">Xuất Kho</h1>
-          <span className="text-muted">Kho tổng · {p ? periodLabel : 'Đang tải…'}</span>
-        </div>
+      <PageHeader title="Xuất Kho" subtitle={`Kho tổng · ${p ? periodLabel : 'Đang tải…'}`}>
         <PeriodFilter state={period} params={periodParams} onChange={setPeriodParams} />
-      </div>
+      </PageHeader>
 
       <div className="flex flex-col gap-3">
         {destinations.error ? (
