@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card'
 import { ChartTooltip } from '../../components/ui/ChartTooltip'
 import { barGap, clamp, niceCeil, showXLabel } from '../../lib/chart'
 import { cn } from '../../lib/cn'
+import { EmptyState } from '../../components/ui/EmptyState'
 import { fmtDate } from '../../lib/format'
 
 function Legend() {
@@ -24,13 +25,15 @@ function Legend() {
 export function InOutBarChart({ daily, className }: { daily: DailyCount[]; className?: string }) {
   const [hover, setHover] = useState<number | null>(null)
   const n = daily.length
-  const max = niceCeil(Math.max(...daily.flatMap((d) => [d.inCount, d.outCount])), 5)
+  const total = daily.reduce((s, d) => s + d.inCount + d.outCount, 0)
+  const max = niceCeil(Math.max(0, ...daily.flatMap((d) => [d.inCount, d.outCount])), 5)
   const gap = barGap(n)
   const grid = [0, 50, 100].map((p) => ({ pos: p, label: String(Math.round((max * p) / 100)) }))
   const tip = hover !== null && hover < n ? daily[hover] : null
 
   return (
     <Card title="Lượt nhập và xuất theo ngày" action={<Legend />} className={className}>
+      {total === 0 && <EmptyState>Chưa có lượt nhập hoặc xuất nào trong khoảng này.</EmptyState>}
       <div className="relative h-[220px]">
         {grid.map((g) => (
           <div key={g.pos} aria-hidden="true">

@@ -3,7 +3,7 @@ import { api } from '../../api/client'
 import { useAuth } from '../../auth/AuthContext'
 import { cn } from '../../lib/cn'
 import { useAsync } from '../../lib/useAsync'
-import { NAV_ITEMS } from './nav'
+import { NAV_ITEMS, type NavItem } from './nav'
 
 function minutesAgo(iso: string): string {
   const diff = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
@@ -11,10 +11,34 @@ function minutesAgo(iso: string): string {
   return diff <= 1 ? 'vừa xong' : `${diff} phút trước`
 }
 
+function renderLink(item: NavItem, pendingLabels: number | undefined) {
+  return (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      end={item.to === '/dashboard'}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center justify-between rounded-lg px-3 py-[9px] no-underline hover:no-underline',
+          isActive
+            ? 'bg-nav-active-bg font-semibold text-nav-active-fg hover:text-nav-active-fg'
+            : 'text-ink-2 hover:bg-chip hover:text-ink',
+        )
+      }
+    >
+      <span>{item.label}</span>
+      {item.badgeKey && pendingLabels !== undefined && pendingLabels > 0 && (
+        <span className="rounded-full bg-chip px-2 py-px text-xs font-semibold text-ink-2">{pendingLabels}</span>
+      )}
+    </NavLink>
+  )
+}
+
 export function Sidebar() {
   const { admin, logout } = useAuth()
   const navigate = useNavigate()
   const bot = useAsync(() => api.getBotStatus(), [])
+  const pendingLabels = bot.data?.pendingLabels
 
   return (
     <nav
@@ -27,28 +51,19 @@ export function Sidebar() {
       </div>
 
       <div className="flex flex-col gap-0.5">
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/dashboard'}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center justify-between rounded-lg px-3 py-[9px] no-underline hover:no-underline',
-                isActive
-                  ? 'bg-nav-active-bg font-semibold text-nav-active-fg hover:text-nav-active-fg'
-                  : 'text-ink-2 hover:bg-chip hover:text-ink',
-              )
-            }
-          >
-            <span>{item.label}</span>
-            {item.badgeKey && bot.data && bot.data.pendingLabels > 0 && (
-              <span className="rounded-full bg-chip px-2 py-px text-xs font-semibold text-ink-2">
-                {bot.data.pendingLabels}
-              </span>
-            )}
-          </NavLink>
-        ))}
+        {NAV_ITEMS.map((item) =>
+          item.children ? (
+            // Nhóm (vd. Giao dịch): tiêu đề không bấm được + các trang con thụt vào
+            <div key={item.to} className="flex flex-col gap-0.5">
+              <span className="px-3 py-[9px] text-ink-2">{item.label}</span>
+              <div className="flex flex-col gap-0.5 border-l border-line pl-2 ml-4">
+                {item.children.map((child) => renderLink(child, pendingLabels))}
+              </div>
+            </div>
+          ) : (
+            renderLink(item, pendingLabels)
+          ),
+        )}
       </div>
 
       <div className="mt-auto flex flex-col gap-3">
