@@ -7,7 +7,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Tổng quan' },
+  { to: '/dashboard', label: 'Tổng quan' },
   { to: '/ton-kho', label: 'Tồn kho' },
   {
     to: '/giao-dich',

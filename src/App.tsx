@@ -3,6 +3,7 @@ import { RequireAuth } from './auth/RequireAuth'
 import { AppShell } from './components/layout/AppShell'
 import { NAV_PAGES } from './components/layout/nav'
 import DashboardPage from './pages/DashboardPage'
+import HomePage from './pages/HomePage'
 import InboundPage from './pages/InboundPage'
 import ItemsPage from './pages/ItemsPage'
 import OutboundPage from './pages/OutboundPage'
@@ -11,11 +12,12 @@ import PlaceholderPage from './pages/PlaceholderPage'
 import StockPage from './pages/StockPage'
 
 /** Đường dẫn đã có trang thật; các mục menu còn lại hiện trang giữ chỗ. */
-const BUILT = new Set(['/', '/ton-kho', '/giao-dich/nhap-kho', '/giao-dich/xuat-kho', '/danh-muc'])
+const BUILT = new Set(['/dashboard', '/ton-kho', '/giao-dich/nhap-kho', '/giao-dich/xuat-kho', '/danh-muc'])
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
         element={
@@ -24,7 +26,7 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<DashboardPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/ton-kho" element={<StockPage />} />
         <Route path="/giao-dich" element={<Navigate to="/giao-dich/nhap-kho" replace />} />
         <Route path="/giao-dich/nhap-kho" element={<InboundPage />} />
