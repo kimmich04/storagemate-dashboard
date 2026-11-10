@@ -7,10 +7,8 @@ import type {
   CategoryCount,
   CatalogQuery,
   CatalogResponse,
-  CountKpi,
   DestinationFilter,
   InDaily,
-  InOut,
   InTransactionsQuery,
   InTransactionsResponse,
   ItemLocations,
@@ -21,14 +19,16 @@ import type {
   OutTotal,
   OutTransactionsQuery,
   OutTransactionsResponse,
+  OverviewInOut,
+  OverviewInStock,
+  OverviewKpi,
+  OverviewRecentTx,
   LoginResponse,
   Location,
   LowStockItem,
   ParserWeek,
   PeriodOptions,
   PeriodParams,
-  RangeDays,
-  RecentTx,
   RegexRateKpi,
   RetypeKpi,
   StaffStat,
@@ -127,14 +127,6 @@ export const api = {
     get<StockHistory>(`dashboard/stock/${itemId}/history`, { days, location_id: locationId }),
 
   // ② Theo ngày
-  getStockIn: (range: RangeDays, locationId?: number) =>
-    get<CountKpi>('dashboard/kpis/stock-in', { range, location_id: locationId }),
-  getStockOut: (range: RangeDays, locationId?: number) =>
-    get<CountKpi>('dashboard/kpis/stock-out', { range, location_id: locationId }),
-  getInOut: (range: RangeDays, locationId?: number) =>
-    get<InOut>('dashboard/in-out', { range, location_id: locationId }),
-  getStaff: (range: RangeDays, locationId?: number) =>
-    get<{ staff: StaffStat[] }>('dashboard/staff', { range, location_id: locationId }),
 
   // ③ Bot
   getRegexRate: (weeks: Weeks, locationId?: number) =>
@@ -144,9 +136,19 @@ export const api = {
   getParserQuality: (weeks: Weeks, locationId?: number) =>
     get<{ weeks: ParserWeek[] }>('dashboard/parser-quality', { weeks, location_id: locationId }),
 
-  // ④ Hoạt động
-  getRecentTransactions: (locationId?: number, limit = 10) =>
-    get<{ items: RecentTx[] }>('dashboard/recent-transactions', { limit, location_id: locationId }),
+  // ===== Trang Tổng quan (kho tổng, plan mục 8.5) =====
+  /** [API-T1..T4] Ô KPI: lượt nhập, mặt hàng được nhập, lượt xuất, nơi nhận. */
+  getOverviewKpi: (kpi: 'stock-in' | 'items-in' | 'stock-out' | 'destinations', p: PeriodParams) =>
+    get<OverviewKpi>(`dashboard/kpis/${kpi}`, periodQuery(p)),
+  /** [API-T5] Ô "Còn tồn" (đầu kỳ → cuối kỳ / tổng mặt hàng). */
+  getOverviewInStock: (p: PeriodParams) => get<OverviewInStock>('dashboard/kpis/in-stock', periodQuery(p)),
+  /** [API-T6] Biểu đồ cột lượt nhập / xuất theo ngày. */
+  getOverviewInOut: (p: PeriodParams) => get<OverviewInOut>('dashboard/in-out', periodQuery(p)),
+  /** [API-T9] Bảng Nhân viên của kho tổng trong kỳ. */
+  getOverviewStaff: (p: PeriodParams) => get<{ staff: StaffStat[] }>('dashboard/staff', periodQuery(p)),
+  /** [API-T8] Giao dịch gần đây, trộn nhập và xuất (không phụ thuộc kỳ). */
+  getOverviewRecent: (limit = 10) => get<{ items: OverviewRecentTx[] }>('dashboard/recent-transactions', { limit }),
+  // [API-T7] "Xuất theo nơi nhận" top 5: dùng lại getOutByDestination(p, {}, 5) của Xuất Kho.
 
   // ===== Dùng chung nhiều trang (plan mục 8.0) =====
   /** [API-P0] Bộ lọc kỳ: danh sách tháng + kỳ đã chuẩn hóa. */
@@ -226,8 +228,8 @@ export const api = {
   getOutTotal: (p: PeriodParams, f: DestinationFilter = {}) =>
     get<OutTotal>('transactions/out/total', { ...periodQuery(p), ...destQuery(f) }),
   /** [API-O3] Bảng (B) Xuất theo nơi nhận. */
-  getOutByDestination: (p: PeriodParams, f: DestinationFilter = {}) =>
-    get<OutByDestination>('transactions/out/by-destination', { ...periodQuery(p), ...destQuery(f) }),
+  getOutByDestination: (p: PeriodParams, f: DestinationFilter = {}, limit?: number) =>
+    get<OutByDestination>('transactions/out/by-destination', { ...periodQuery(p), ...destQuery(f), limit }),
   /** [API-O4] Biểu đồ (C) xu hướng xuất theo ngày. */
   getOutDaily: (p: PeriodParams, f: DestinationFilter = {}) =>
     get<OutDaily>('transactions/out/daily', { ...periodQuery(p), ...destQuery(f) }),

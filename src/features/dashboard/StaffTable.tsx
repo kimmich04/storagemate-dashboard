@@ -5,11 +5,25 @@ import { EmptyState } from '../../components/ui/EmptyState'
 const th = 'border-b border-line py-2 px-2 font-medium'
 const td = 'border-b border-line-soft py-2.5 px-2'
 
+/**
+ * Bảng Nhân viên của kho tổng trong kỳ đang chọn ([API-T9]): số tin, % tin lệnh đọc thẳng bằng regex, số lần Hủy.
+ * Nhân viên chưa gửi tin lệnh nào trong kỳ thì ô "Đúng cú pháp" hiện "–".
+ */
 export function StaffTable({ staff, className }: { staff: StaffStat[]; className?: string }) {
   return (
-    <Card title="Nhân viên" action={<a href="/nhan-vien" className="text-[13px]">Thêm nhân viên</a>} gapClass="gap-3" className={className}>
+    <Card
+      title="Nhân viên"
+      subtitle="Hoạt động trong kỳ đang chọn"
+      action={
+        <a href="/nhan-vien" className="text-[13px]">
+          Thêm nhân viên
+        </a>
+      }
+      gapClass="gap-3"
+      className={className}
+    >
       {staff.length === 0 ? (
-        <EmptyState>Chưa có nhân viên nào gửi tin cho kho này.</EmptyState>
+        <EmptyState>Chưa có nhân viên nào ở kho tổng.</EmptyState>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[440px] border-collapse text-[13px]">
