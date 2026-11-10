@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { ApiError, USE_MOCK } from '../api/client'
+import { ApiError, MOCK_LOGIN } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Icon } from '../components/ui/Icon'
 import { cn } from '../lib/cn'
@@ -154,7 +154,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {USE_MOCK && (
+        {MOCK_LOGIN && (
           <p className="m-0 text-xs text-faint">
             Bản demo: {DEMO_EMAIL} / {DEMO_PASSWORD}
           </p>
